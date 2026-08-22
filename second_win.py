@@ -1,71 +1,161 @@
-from PyQt5.QtWidgets import QApplication, QWidget, QLabel, QPushButton, QVBoxLayout, QHBoxLayout, QLineEdit
-from instrucciones import *
-from final_win import *
+import sys
+from PyQt5 import QtWidgets, QtCore
+from final_win import FinalWin
 
-class TestWin(QWidget):
+
+class SecondWin(QtWidgets.QWidget):
     def __init__(self):
         super().__init__()
-        self.set_appear()
-        self.initUI()
-        self.connects()
-        self.show()
+        self.setWindowTitle("Test de Rufier - Medición")
+        self.setFixedSize(400, 350)
 
-    def set_appear(self):
-        self.setWindowTitle(txt_title)
-        self.resize(win_width, win_height)
-        self.move(win_x, win_y)
+        self.p1 = 0
+        self.p2 = 0
+        self.p3 = 0
+        self.stage = 0
 
-    def initUI(self):
-        self.h_line = QHBoxLayout()
-        self.r_line = QVBoxLayout()
-        self.l_line = QVBoxLayout()
+        self.timer = QtCore.QTimer()
+        self.timer.timeout.connect(self.update_timer)
+        self.seconds_left = 0
 
-        # Widgets de la columna izquierda
-        self.name_label = QLabel(txt_name_label)
-        self.name_input = QLineEdit()
-        self.age_label = QLabel(txt_age_label)
-        self.age_input = QLineEdit()
-        self.first_test_instr = QLabel(txt_first_test_instr)
-        self.btn_first_test = QPushButton(txt_first_test_btn)
-        self.first_test_result = QLineEdit()
-        self.squats_instr = QLabel(txt_squats_instr)
-        self.btn_squats = QPushButton(txt_squats_btn)
-        self.final_test_instr = QLabel(txt_final_test_instr)
-        self.btn_final_test = QPushButton(txt_final_test_btn)
-        self.final_test_result_1 = QLineEdit()
-        self.final_test_result_2 = QLineEdit()
-        self.btn_send = QPushButton(txt_send_btn)
+        self.init_ui()
 
-        self.l_line.addWidget(self.name_label)
-        self.l_line.addWidget(self.name_input)
-        self.l_line.addWidget(self.age_label)
-        self.l_line.addWidget(self.age_input)
-        self.l_line.addWidget(self.first_test_instr)
-        self.l_line.addWidget(self.btn_first_test)
-        self.l_line.addWidget(self.first_test_result)
-        self.l_line.addWidget(self.squats_instr)
-        self.l_line.addWidget(self.btn_squats)
-        self.l_line.addWidget(self.final_test_instr)
-        self.l_line.addWidget(self.btn_final_test)
-        self.l_line.addWidget(self.final_test_result_1)
-        self.l_line.addWidget(self.final_test_result_2)
-        self.l_line.addWidget(self.btn_send)
+    def init_ui(self):
+        layout = QtWidgets.QVBoxLayout()
 
-        # Widget de la columna derecha
-        self.timer_label = QLabel('00:00:00')
-        self.r_line.addWidget(self.timer_label)
+        self.instruction_label = QtWidgets.QLabel(
+            "Presiona 'Comenzar' para medir tu pulso en reposo (P1) durante 15 segundos."
+        )
+        self.instruction_label.setWordWrap(True)
+        self.instruction_label.setAlignment(QtCore.Qt.AlignCenter)
 
-        self.h_line.addLayout(self.l_line)
-        self.h_line.addLayout(self.r_line)
-        self.setLayout(self.h_line)
+        self.timer_label = QtWidgets.QLabel("")
+        self.timer_label.setAlignment(QtCore.Qt.AlignCenter)
+        self.timer_label.setStyleSheet("font-size: 30px; font-weight: bold;")
 
-    def connects(self):
-        self.btn_send.clicked.connect(self.next_click)
+        self.pulse_input = QtWidgets.QLineEdit()
+        self.pulse_input.setPlaceholderText("Ingresa el número de pulsaciones")
+        self.pulse_input.setEnabled(False)
 
-    def next_click(self):
-        self.hide()
-        self.tw = FinalWin()
-    
-app = QApplication([])
-mw = TestWin()
-app.exec_()
+        self.action_button = QtWidgets.QPushButton("Comenzar")
+        self.action_button.clicked.connect(self.handle_action)
+
+        layout.addWidget(self.instruction_label)
+        layout.addWidget(self.timer_label)
+        layout.addWidget(self.pulse_input)
+        layout.addWidget(self.action_button)
+        self.setLayout(layout)
+
+    def handle_action(self):
+        if self.stage == 0:
+            self.start_countdown(15)
+            self.action_button.setEnabled(False)
+        elif self.stage == 1:
+            value = self.get_pulse_value()
+            if value is None:
+                return
+            self.p1 = value
+            self.pulse_input.clear()
+            self.pulse_input.setEnabled(False)
+            self.instruction_label.setText(
+                "Ahora realiza 30 sentadillas en 45 segundos. ¡Comienza cuando estés listo!"
+            )
+            self.action_button.setText("Comenzar ejercicio")
+            self.stage = 2
+        elif self.stage == 2:
+            self.instruction_label.setText("Realizando ejercicio...")
+            self.start_countdown(45)
+            self.action_button.setEnabled(False)
+        elif self.stage == 3:
+            self.instruction_label.setText(
+                "Mide tu pulso durante los primeros 15 segundos después del ejercicio (P2)."
+            )
+            self.start_countdown(15)
+            self.action_button.setEnabled(False)
+        elif self.stage == 4:
+            value = self.get_pulse_value()
+            if value is None:
+                return
+            self.p2 = value
+            self.pulse_input.clear()
+            self.pulse_input.setEnabled(False)
+            self.instruction_label.setText("Descansa 30 segundos.")
+            self.start_countdown(30)
+            self.action_button.setEnabled(False)
+        elif self.stage == 5:
+            self.instruction_label.setText(
+                "Mide tu pulso durante los últimos 15 segundos del primer minuto después del ejercicio (P3)."
+            )
+            self.start_countdown(15)
+            self.action_button.setEnabled(False)
+        elif self.stage == 6:
+            value = self.get_pulse_value()
+            if value is None:
+                return
+            self.p3 = value
+            self.open_final_win()
+    def get_pulse_value(self):
+        text = self.pulse_input.text()
+        if text.isdigit():
+            return int(text)
+        QtWidgets.QMessageBox.warning(
+            self,
+            "Dato inválido",
+            "Por favor ingresa solo números en el campo de pulsaciones."
+        )
+        return None
+
+    def start_countdown(self, seconds):
+        self.seconds_left = seconds
+        self.timer_label.setText(str(self.seconds_left))
+        self.timer.start(1000)
+
+    def update_timer(self):
+        self.seconds_left -= 1
+        self.timer_label.setText(str(self.seconds_left))
+        if self.seconds_left <= 0:
+            self.timer.stop()
+            self.timer_label.setText("")
+            self.on_countdown_finished()
+
+    def on_countdown_finished(self):
+        if self.stage == 0:
+            self.instruction_label.setText("Ingresa cuántas pulsaciones contaste (P1).")
+            self.pulse_input.setEnabled(True)
+            self.action_button.setText("Continuar")
+            self.action_button.setEnabled(True)
+            self.stage = 1
+        elif self.stage == 2:
+            self.instruction_label.setText("¡Ejercicio terminado!")
+            self.action_button.setText("Medir P2")
+            self.action_button.setEnabled(True)
+            self.stage = 3
+        elif self.stage == 3:
+            self.instruction_label.setText("Ingresa cuántas pulsaciones contaste (P2).")
+            self.pulse_input.setEnabled(True)
+            self.action_button.setText("Continuar")
+            self.action_button.setEnabled(True)
+            self.stage = 4
+        elif self.stage == 4:
+            self.instruction_label.setText("Descanso terminado.")
+            self.action_button.setText("Medir P3")
+            self.action_button.setEnabled(True)
+            self.stage = 5
+        elif self.stage == 5:
+            self.instruction_label.setText("Ingresa cuántas pulsaciones contaste (P3).")
+            self.pulse_input.setEnabled(True)
+            self.action_button.setText("Ver resultados")
+            self.action_button.setEnabled(True)
+            self.stage = 6
+
+    def open_final_win(self):
+        self.final_win = FinalWin(self.p1, self.p2, self.p3)
+        self.final_win.show()
+        self.close()
+
+
+if __name__ == "__main__":
+    app = QtWidgets.QApplication(sys.argv)
+    window = SecondWin()
+    window.show()
+    sys.exit(app.exec_())

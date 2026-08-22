@@ -1,26 +1,71 @@
-txt_title = "Health"
-win_x,win_y = 200,100
-win_width,win_height = 1000,600
-txt_hello = "Welcome to the Health Status detection program"
-txt_instruction = "This Application allows you to use the Ruffier test for..."
-txt_next = "start"
-txt_title = 'Health'
-win_x, win_y = 200, 100
-win_width, win_height = 1000, 600
+import sys
+from PyQt5 import QtWidgets, QtCore
+from second_win import SecondWin
 
-txt_hello = 'Welcome to the Health status detection program!'
-txt_instruction = 'This application allows you to use the Rufier test for...'
-txt_next = 'Start'
 
-txt_name_label = 'Enter Your full name:'
-txt_age_label = 'Full years:'
-txt_first_test_instr = 'Lie on your back and take your pulse for 15 seconds. Click the "Start first test" button to start the timer. Write down the result in the appropriate field.'
-txt_first_test_btn = 'Start the first test'
-txt_squats_instr = 'Perform 30 squats in 45 seconds. To do this, click the "Start doing squats" button to start the squat counter.'
-txt_squats_btn = 'Start doing squats'
-txt_final_test_instr = 'Lie on your back and take your pulse for the first 15 seconds of the minute, then for the last 15 seconds of the minute. Press the "Start final test" button to start the timer.'
-txt_final_test_btn = 'Start the final test'
-txt_send_btn = 'Send the results'
+class InstrWin(QtWidgets.QWidget):
+    def __init__(self):
+        super().__init__()
+        self.setWindowTitle("Instrucciones")
+        self.setFixedSize(400, 300)
 
-txt_result_placeholder = 'Roufier Index: 0'
-txt_performance_placeholder = 'Cardiac performance: there is no data for this age'
+        self.pages = [
+            "Paso 1:\nSiéntate y relájate durante 1 minuto.",
+            "Paso 2:\nMediremos tu pulso en reposo (P1).",
+            "Paso 3:\nHarás 30 sentadillas en 45 segundos.",
+            "Paso 4:\nMediremos tu pulso después del ejercicio (P2 y P3)."
+        ]
+        self.current_index = 0
+
+        self.init_ui()
+
+    def init_ui(self):
+        layout = QtWidgets.QVBoxLayout()
+
+        self.text_label = QtWidgets.QLabel(self.pages[self.current_index])
+        self.text_label.setAlignment(QtCore.Qt.AlignCenter)
+        self.text_label.setWordWrap(True)
+        self.text_label.setStyleSheet("font-size: 16px;")
+
+        buttons_layout = QtWidgets.QHBoxLayout()
+        self.back_button = QtWidgets.QPushButton("Atrás")
+        self.back_button.clicked.connect(self.back_click)
+        self.next_button = QtWidgets.QPushButton("Siguiente")
+        self.next_button.clicked.connect(self.next_click)
+
+        buttons_layout.addWidget(self.back_button)
+        buttons_layout.addWidget(self.next_button)
+
+        self.start_test_button = QtWidgets.QPushButton("Comenzar prueba")
+        self.start_test_button.clicked.connect(self.open_second_win)
+        self.start_test_button.setEnabled(False)
+
+        layout.addWidget(self.text_label)
+        layout.addLayout(buttons_layout)
+        layout.addWidget(self.start_test_button)
+        self.setLayout(layout)
+
+    def next_click(self):
+        if self.current_index < len(self.pages) - 1:
+            self.current_index += 1
+            self.text_label.setText(self.pages[self.current_index])
+        if self.current_index == len(self.pages) - 1:
+            self.start_test_button.setEnabled(True)
+
+    def back_click(self):
+        if self.current_index > 0:
+            self.current_index -= 1
+            self.text_label.setText(self.pages[self.current_index])
+            self.start_test_button.setEnabled(False)
+
+    def open_second_win(self):
+        self.second_win = SecondWin()
+        self.second_win.show()
+        self.close()
+
+
+if __name__ == "__main__":
+    app = QtWidgets.QApplication(sys.argv)
+    window = InstrWin()
+    window.show()
+    sys.exit(app.exec_())

@@ -5,6 +5,6 @@ this is a **program** created to make the ruffier test
 
 | test |
 |---|
-| descrption |
+| the ruffier test is a test |
 ---
 | [see program](www.google.com) |
